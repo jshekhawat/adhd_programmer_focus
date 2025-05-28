@@ -1,8 +1,28 @@
 from PIL import ImageGrab
 import time
+import Xlib.display
 from pathlib import Path
 from datetime import datetime
+from app import App
+
+
+import Xlib.xobject
 from recorder import Recorder
+
+def get_window():
+    display = Xlib.display.Display()
+    window = display.get_input_focus().focus
+    if isinstance(window, Xlib.xobject.drawable.Window):
+        wmclass = window.get_wm_class()
+        if wmclass is None:
+            window = window.query_tree().parent
+            wmclass = window.get_wm_class()
+        if wmclass is None:
+            return None
+        wmclass = wmclass[1]
+        return wmclass
+    else:
+        return None
 
 def record_screen(duration=60, fps=30, output_dir="recordings"):
     """
@@ -30,6 +50,8 @@ def record_screen(duration=60, fps=30, output_dir="recordings"):
     screen = ImageGrab.grab()
     resolution = screen.size
     
+
+
     # Initialize recorder
     with Recorder(str(output_file), fps=fps, resolution=resolution) as recorder:
         start_time = time.time()
@@ -45,5 +67,9 @@ def record_screen(duration=60, fps=30, output_dir="recordings"):
     print(f"Saved to: {output_file}")
 
 if __name__ == "__main__":
+    # app = App()
+    # app.run()
+    #wmclass = get_window()
+    #print(wmclass)
     # Record for 10 seconds at 30fps
-    record_screen(duration=10, fps=30)
+    record_screen(duration=10, fps=1)
