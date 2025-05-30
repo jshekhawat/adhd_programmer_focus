@@ -67,9 +67,9 @@ def record_screen(duration=60, fps=30, output_dir="recordings"):
     print(f"Saved to: {output_file}")
 
 if __name__ == "__main__":
-    # app = App()
-    # app.run()
+    app = App()
+    app.run()
     #wmclass = get_window()
     #print(wmclass)
     # Record for 10 seconds at 30fps
-    record_screen(duration=10, fps=1)
+    #record_screen(duration=10, fps=1)

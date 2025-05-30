@@ -1,11 +1,20 @@
+from datetime import datetime
+import json
 import Xlib.display
 import mss
 from recorder import Recorder
+import multiprocessing
 from multiprocessing import Queue
 import numpy as np
 import cv2
 from PIL import Image
 from tesserocr import PyTessBaseAPI, RIL
+import asyncio
+import os
+from pathlib import Path
+
+
+DIR_PATH = os.path.join(os.environ["HOME"], ".cache", "apf")
 
 def get_window():
     display = Xlib.display.Display()
@@ -64,41 +73,72 @@ class OCR:
 class App:
 
     def __init__(self):
-        
-        #self.recorder = Recorder()
+        output_dir = "recordings"
+        output_path = Path(output_dir)
+        output_path.mkdir(exist_ok=True)
+    
+        # Generate output filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = output_path / f"recording_{timestamp}.mp4"
+        print(output_file)
+        self.recorder = Recorder(output_path=str(output_file))
         self.is_running = True
         self.sct = mss.mss()
+        self.frame_i = 0
         # create two queues one to offload the text extraction work to the tesseract helpper
         # another to process the results back from the extracted text.
         
-        self.frames_queue = Queue()
-        self.processed_frames = Queue()
+        self.images_queue = Queue()
+        self.processed_images = Queue()
         self.num_workers = 1
         self.workers = []
         self.pids = []
 
         for i in range(self.num_workers):
             #offload work
-            w = multiprocessing.Process(target=self.)
-
+            w = multiprocessing.Process(target=self.process_image, args = ())
+            self.workers.append(w)
+        for i in range(self.num_workers):
+            self.workers[i].start()
 
 
     def process_image(self):
         ocr = OCR()
 
         while True:
-            frame = self.frames_queue
-
+            img = self.images_queue.get()
+            results = ocr.process_image(img)
+            self.processed_frames.put({
+                "results": results
+            })
         
     def run(self):
         #count = 0
+        prev_img = np.zeros(
+            (2560,1080, 3), dtype=np.uint8
+        )
         while self.is_running:
-            print(self.sct.monitors)
+            #print(self.sct.monitors)
+            current_app = get_window()
             sc = self.sct.grab(self.sct.monitors[1])
             n_sc = np.array(sc)[:, :, :-1]
             n_sc = cv2.resize(n_sc, (2560, 1080))
-            print(n_sc)
-            #count = count + 1
+            asyncio.run(self.recorder.add_frame(n_sc))
+
+            time_stamp = json.dumps(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+            self.images_queue.put({
+                "img": n_sc,
+                "prev_img": prev_img,
+                "current_app": current_app,
+                "timestamp": time_stamp,
+                "frame_id":self.frame_i
+            })
+
+            self.frame_i += 1
+            # print(n_sc)
+            # count = count + 1
+            #print(self.processed_frames.get(0))
 
             
 

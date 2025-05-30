@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 class Recorder:
-    def __init__(self, output_path, fps=30, resolution=(1920, 1080)):
+    def __init__(self, output_path, fps=0.5, resolution=(1920, 1080)):
         """
         Initialize the recorder with the given settings.
         
